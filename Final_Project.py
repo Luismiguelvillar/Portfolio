@@ -29,6 +29,9 @@ large_optimization = True # Large Optimization is used to reduce the number of n
 """ Are you interested in delayed neutrons? """
 delayed_analysis = True
 
+""" Choose resolution of the graphs (dpi) """
+dpi_res = 100 
+
 #Are you interested in text for random walk and results of every iteration
 text = True
 
@@ -36,7 +39,7 @@ text = True
 type_neutron = 1
 
 # Define number of trials for generating neutrons in a sphere of radius R in cm.
-N = 100000
+N = 50000
 R = 10 #cm
 
 # Resolution is the increment taken into account when we determine if the sample is uniform.
@@ -376,7 +379,7 @@ def graph(cube, sphere, N_neutrons):
     ax.grid("on")
 
     plt.title(label = str(N_neutrons) + " Neutrons in Sphere of R = " + str(R) + "cm", fontsize = 20 )
-    plt.savefig("NeutronsInSphere.png", dpi = 1000)
+    plt.savefig("NeutronsInSphere.png", dpi = dpi_res)
     plt.show()
 
 def sphere_points(cube, sphere):
@@ -450,7 +453,7 @@ def isUniform(sphere_points, resolution, ranwalke):
         ax.set_ylabel("Total Number of neutrons / " + r'$r^{3}$')
         plt.title("Total number of neutrons vs 1 / " + r'$r^{3}$')
         plt.grid('on')
-        plt.savefig("Uniformity1.png", dpi = 1000)
+        plt.savefig("Uniformity1.png", dpi = dpi_res)
         plt.show()
 
     else:
@@ -702,7 +705,7 @@ def graph_randonWalk(ranwalk):
     ax.set_ylabel("y axis [cm]")
     ax.set_zlabel("z axis [cm]")
     plt.title(label = "Trajectories of the living neutrons inside the reactor")
-    plt.savefig("Trajectories.png", dpi = 1000)
+    plt.savefig("Trajectories.png", dpi = dpi_res)
     plt.show()
 
 def graph_final(ranwalk, N_alive):
@@ -736,7 +739,7 @@ def graph_final(ranwalk, N_alive):
     ax.set_ylabel("y axis [cm]")
     ax.set_zlabel("z axis [cm]")
     plt.title(label = "Final positions of the " + str(N_alive) + " remaining neutrons in the reactor", fontsize = 20 )
-    plt.savefig("FinalNeutrons.png", dpi = 1000)
+    plt.savefig("FinalNeutrons.png", dpi = dpi_res)
     plt.show()
 
 def graph_k(k_values, average_k, standard_deviation):
@@ -776,7 +779,7 @@ def graph_k(k_values, average_k, standard_deviation):
     plt.grid('on')
     plt.title("Measured Values of k against step number")
     plt.legend()
-    plt.savefig("K_Value.png", dpi = 1000)
+    plt.savefig("K_Value.png", dpi = dpi_res)
     plt.show()
 
 def std_k(values_k):
