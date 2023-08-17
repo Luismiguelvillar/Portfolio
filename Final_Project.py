@@ -1,6 +1,6 @@
 """
 
-Theory Computing Project: Monte Carlo Simulation of Nuclear Reactor
+Monte Carlo Simulation of Nuclear Reactor
 -------------------------------------------------------------------
 
 This code will produce a random walk of a number N_neutrons of neutrons through a 
