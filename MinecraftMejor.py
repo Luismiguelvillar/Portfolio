@@ -1,7 +1,7 @@
 """
 Circle Generator
 ----------------
-This programme creates a circle using the midpoint algorithm and 
+This program creates a circle using the midpoint algorithm. (WORK IN PROGRESS)
 
 by Luis Miguel Villar Padruno
 """
