@@ -4,6 +4,7 @@ Circle Generator
 This program creates a circle using the midpoint algorithm. (WORK IN PROGRESS)
 
 by Luis Miguel Villar Padruno
+2023
 """
 
 import numpy as np
