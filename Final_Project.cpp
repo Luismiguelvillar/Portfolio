@@ -19,21 +19,24 @@ using std::cin;
 using std::string;
 using std::vector;
 
+// Useful Masses in GeV
+const double mass_proton{0.938};
+const double mass_electron{0.000511};
+const double mass_muon{0.10566};
+const double mass_neutron{0.9395};
+const double mass_tau{1.777};
 // The efficiencies run from 0 to 10
 // Each layer of the tracker and muon chamber have a chance of detecting given by these values.
 // For the calorimeter calorimeter_efficiency represents the chance of correct functioning (detection).
 // The true efficiencies (the action of multilayered trackers / muons) will be calculated using this starting values.
 const double detector_analysis_efficiency{10};
-const double tracker_efficiency{10};
-const double muon_chamber_efficiency{10};
+const double tracker_efficiency{9};
+const double muon_chamber_efficiency{9};
 const double likelihood_leptonic_decay{5};
-const double calorimeter_efficiency{10};
+const double calorimeter_efficiency{9};
 int ids{0};
 int seed;
-
-// Comentarios 
-// 1. Se debe mejorar la print function de todas las clases.
-// 2. Probar el contador de energia con varios eventos diferentes. Luego pensar en ya terminar.
+int number_of_leptonic_decays{0};
 
 // Mathematical functions
 int number_of_detections_for_confidence(double detector_efficiency, int number_of_detectors)
@@ -62,7 +65,7 @@ vector<double> divide_random(double energy, int parts)
     {
      divisions[i] = (float)(1 + rand() % ((int)energy - parts + 1));
     }
-    else // If we get a division by zero we just devide equally an avoid the error (really rare error, around 0.3 % of the times for Neutrons, for example)
+    else // If we get a division by zero we just devide equally an avoid the error 
     {
       errors = errors + 1;
       double energy_per_division = original_energy / (double)parts;
@@ -268,6 +271,12 @@ class Particle
       std::swap(is_anti, object.is_anti);
       return *this;
     }
+    
+    double operator+(Particle & object)
+    {
+      return 1;
+    }
+
     // Setters 
     virtual void set_identifier(const int id_set) {identifier = id_set;}
     virtual void set_true_energy(const double true_energy_set)
@@ -359,6 +368,28 @@ class Particle
       cout<<"The true energy is: "<<true_energy<<endl;
     }
   };
+
+template <typename T> // Use of template 
+double sum_all_vectors(vector<vector<T>> vector_to_sum)
+{
+  double sum{0};
+  for(vector<T> & vect_intern : vector_to_sum) 
+  // This function receives a vector of vectors and returns the sum of all elements if the elements can be summed and it returns the number of
+  // elements if the elements are pointers to particles.
+  {
+    for(T & element : vect_intern)
+    {
+      if constexpr (std::is_same_v<T, double>)
+      {
+        sum = sum + element;
+      } else if constexpr (std::is_same_v<T, std::shared_ptr<Particle>>)
+      {
+        sum = sum + 1;
+      }
+    }
+  }
+  return sum;
+}
 
 class Lepton : public Particle
 {
@@ -1001,13 +1032,13 @@ class Proton : public Particle
 {
   protected:
     int charge{1};
-    double mass{938}; // Mev/c^2
+    double mass{mass_proton}; // Gev/c^2
     vector<double> energies_layers{0,0,0,0,0,0,0,0,0};
 
   public:
     Proton()
     {
-      charge = 1; mass = 938; true_energy = mass;
+      charge = 1; mass = mass_proton; true_energy = mass;
       vector<double> divisions_true_energy{divide_random(true_energy, 7)};
       energies_layers[0] = divisions_true_energy[0]; //EM1
       energies_layers[1] = divisions_true_energy[1]; //EM2
@@ -1023,7 +1054,7 @@ class Proton : public Particle
     Proton(double true_energy_initial)
     {
       charge = 1;
-      mass = 938;
+      mass = mass_proton;
       spin = 0.5;
       true_energy = mass;
       // Try and catch implementation...
@@ -1040,7 +1071,6 @@ class Proton : public Particle
         energies_layers[6] = divisions_true_energy[6]; //TRACK3
         energies_layers[7] = 0; //MUON1
         energies_layers[8] = 0; //MUON2
-
         return;
       }
       double new_energy;
@@ -1235,25 +1265,25 @@ class Neutron : public Particle
 {
   protected:
   int charge{0};
-  double mass{939.5}; 
+  double mass{mass_neutron}; 
   vector<double> energies_layers{0,0,0,0,0,0,0,0,0};
 
   public:
     Neutron() 
     {
-      mass = 939.5;
+      mass = mass_neutron;
       charge = 0;
       spin = 0.5;
       true_energy = mass;
 
-      vector<double> divisions_true_energy{divide_random(true_energy, 7)};
+      vector<double> divisions_true_energy{divide_random(true_energy, 4)};
       energies_layers[0] = divisions_true_energy[0]; //EM1
       energies_layers[1] = divisions_true_energy[1]; //EM2
       energies_layers[2] = divisions_true_energy[2]; //HAD1
       energies_layers[3] = divisions_true_energy[3]; //HAD2
-      energies_layers[4] = divisions_true_energy[4]; //TRACK1
-      energies_layers[5] = divisions_true_energy[5]; //TRACK2
-      energies_layers[6] = divisions_true_energy[6]; //TRACK3
+      energies_layers[4] = 0;
+      energies_layers[5] = 0;
+      energies_layers[6] = 0;
       energies_layers[7] = 0; //MUON1
       energies_layers[8] = 0; //MUON2
     }
@@ -1261,21 +1291,21 @@ class Neutron : public Particle
     {
       charge = 0;
       spin = 0.5;
-      mass = 939.5;
+      mass = mass_neutron;
       true_energy = mass;
 
       // Try and catch implementation...
       if(true_energy_initial >= mass)
       {
         true_energy = true_energy_initial;
-        vector<double> divisions_true_energy{divide_random(true_energy, 7)};
+        vector<double> divisions_true_energy{divide_random(true_energy, 4)};
         energies_layers[0] = divisions_true_energy[0]; //EM1
         energies_layers[1] = divisions_true_energy[1]; //EM2
         energies_layers[2] = divisions_true_energy[2]; //HAD1
         energies_layers[3] = divisions_true_energy[3]; //HAD2
-        energies_layers[4] = divisions_true_energy[4]; //TRACK1
-        energies_layers[5] = divisions_true_energy[5]; //TRACK2
-        energies_layers[6] = divisions_true_energy[6]; //TRACK3
+        energies_layers[4] = 0; //TRACK1
+        energies_layers[5] = 0; //TRACK2
+        energies_layers[6] = 0;
         energies_layers[7] = 0; //MUON1
         energies_layers[8] = 0; //MUON2
         return;
@@ -1290,7 +1320,7 @@ class Neutron : public Particle
           cin >> new_energy;
           if(new_energy <= mass)
           {
-            throw std::invalid_argument(" ----> Energy must be greater than the invariant mass of the particle <---- ");
+            throw std::invalid_argument(" ----> Energy must be greater than the invariant mass of Neutron <---- ");
           } else
           {
             valid_input = true;
@@ -1305,14 +1335,14 @@ class Neutron : public Particle
         } 
       }
 
-      vector<double> divisions_true_energy{divide_random(true_energy, 7)};
+      vector<double> divisions_true_energy{divide_random(true_energy, 4)};
       energies_layers[0] = divisions_true_energy[0]; //EM1
       energies_layers[1] = divisions_true_energy[1]; //EM2
       energies_layers[2] = divisions_true_energy[2]; //HAD1
       energies_layers[3] = divisions_true_energy[3]; //HAD2
-      energies_layers[4] = divisions_true_energy[4]; //TRACK1
-      energies_layers[5] = divisions_true_energy[5]; //TRACK2
-      energies_layers[6] = divisions_true_energy[6]; //TRACK3
+      energies_layers[4] = 0; //TRACK1
+      energies_layers[5] = 0; //TRACK2
+      energies_layers[6] = 0; //TRACK3
       energies_layers[7] = 0; //MUON1
       energies_layers[8] = 0; //MUON2
       is_anti =false;
@@ -1411,7 +1441,7 @@ class Neutron : public Particle
     void set_mass() 
     {
       cout<<"The mass of the neutron is 939.5 Mev/c^2"<<endl;
-      mass = 939.5*pow(10,6);
+      mass = mass_neutron;
     }
     void set_charge()
     {
@@ -1423,14 +1453,14 @@ class Neutron : public Particle
       if(true_energy_set >= mass)
       {
         true_energy = true_energy_set;
-        vector<double> divisions_true_energy{divide_random(true_energy, 7)};
+        vector<double> divisions_true_energy{divide_random(true_energy, 4)};
         energies_layers[0] = divisions_true_energy[0]; //EM1
         energies_layers[1] = divisions_true_energy[1]; //EM2
         energies_layers[2] = divisions_true_energy[2]; //HAD1
         energies_layers[3] = divisions_true_energy[3]; //HAD2
-        energies_layers[4] = divisions_true_energy[4]; //TRACK1
-        energies_layers[5] = divisions_true_energy[5]; //TRACK2
-        energies_layers[6] = divisions_true_energy[6]; //TRACK3
+        energies_layers[4] = 0; //TRACK1
+        energies_layers[5] = 0; //TRACK2
+        energies_layers[6] = 0; //TRACK3
         energies_layers[7] = 0; //MUON1
         energies_layers[8] = 0; //MUON2
         return;
@@ -1460,14 +1490,14 @@ class Neutron : public Particle
         cin.ignore();
       } 
     }
-    vector<double> divisions_true_energy{divide_random(true_energy, 7)};
+    vector<double> divisions_true_energy{divide_random(true_energy, 4)};
     energies_layers[0] = divisions_true_energy[0]; //EM1
     energies_layers[1] = divisions_true_energy[1]; //EM2
     energies_layers[2] = divisions_true_energy[2]; //HAD1
     energies_layers[3] = divisions_true_energy[3]; //HAD2
-    energies_layers[4] = divisions_true_energy[4]; //TRACK1
-    energies_layers[5] = divisions_true_energy[5]; //TRACK2
-    energies_layers[6] = divisions_true_energy[6]; //TRACK3
+    energies_layers[4] = 0; //TRACK1
+    energies_layers[5] = 0; //TRACK2
+    energies_layers[6] = 0; //TRACK3
     energies_layers[7] = 0; //MUON1
     energies_layers[8] = 0; //MUON2
   }
@@ -1503,7 +1533,7 @@ class Electron : public Lepton
   public:
     Electron()
     {
-      mass = 0.511;
+      mass = 0.000511; //GeV
       charge = -1;
       spin = 0.5;
       true_energy = mass;
@@ -1529,7 +1559,7 @@ class Electron : public Lepton
       {
         charge = 1;    
       }
-      mass = 0.511;
+      mass = mass_electron;
       spin = 0.5;
       true_energy = mass;
 
@@ -1768,7 +1798,7 @@ class Muon : public Lepton
   public:
     Muon() 
     {
-      charge = -1; mass = 105.66; true_energy = mass;
+      charge = -1; mass = 0.10566; true_energy = mass;
 
       vector<double> divisions_true_energy{divide_random(true_energy, 5)};
       energies_layers[0] = 0; //EM1
@@ -1783,7 +1813,7 @@ class Muon : public Lepton
     }
     Muon(bool is_anti_initial, bool isolated_initial, double true_energy_initial)
     {
-      mass = 105.66;
+      mass = mass_muon;
       spin = 0.5;
       isolated = isolated_initial;
       is_anti = is_anti_initial;
@@ -2151,7 +2181,7 @@ class Tau : public Lepton
   public:
     Tau() 
     {
-      mass = 1776.86; 
+      mass = mass_tau; 
       spin = 0.5;
       true_energy = mass;
       vector<double> divisions_true_energy{divide_random(true_energy, 7)};
@@ -2200,7 +2230,7 @@ class Tau : public Lepton
         decay_type = decay_type_initial;
       }
       is_anti = is_anti_initial;
-      mass = 1776.86;
+      mass = mass_tau;
       spin = 0.5;
       true_energy = mass;
       if(is_anti == false)
@@ -2516,9 +2546,9 @@ class Tau : public Lepton
         cout<<"The tau decays hadronically..."<<endl;
         return;
       }
-      // Preparatin to distribute the energy of the Tau randomly between decay products.
+      number_of_leptonic_decays = number_of_leptonic_decays + 1;
+      // Preparation to distribute the energy of the Tau randomly between decay products.
       vector<double> divs_energy{divide_random(true_energy, 3)};
-
       if(is_anti == false)
       {
         if(decay_random < 5)
@@ -3371,7 +3401,7 @@ class Calorimeter
       EM_1_particles_ID.clear();
       EM_2_particles_ID.clear();
       HAD_1_particles_ID.clear();
-      HAD_1_particles_ID.clear();
+      HAD_2_particles_ID.clear();
       EM_1_energies.clear();
       EM_2_energies.clear();
       HAD_1_energies.clear();
@@ -3393,7 +3423,7 @@ class Calorimeter
         particle->change_seed_calorimeter();
         return false;
       }
-      if(particle->get_mass() == 105.66) // Muons do not leave energy in calorimeter
+      if(particle->get_mass() == mass_muon) // Muons do not leave energy in calorimeter
       {
         particle->change_seed_calorimeter();
         return false;
@@ -3412,7 +3442,7 @@ class Calorimeter
       EM_1_energies.push_back(particle->energy_layer_n(0));
 
       // Second EM layer:
-      if((particle->get_charge() == 0 and particle->get_spin() == 1 and particle->get_mass() == 0) or (particle->get_mass() == 0.511 and (particle->get_charge() == 1 or particle->get_charge()==-1)))
+      if((particle->get_charge() == 0 and particle->get_spin() == 1 and particle->get_mass() == 0) or (particle->get_mass() == mass_electron and (particle->get_charge() == 1 or particle->get_charge()==-1)))
       {
         EM_2_particles_ID.push_back(particle->get_identifier());
         EM_2_energies.push_back(particle->energy_layer_n(1));
@@ -3606,7 +3636,7 @@ class MuonChamber
     // Detection process
     bool detect(std::shared_ptr<Particle> & particle)
     {
-      if(particle->get_mass() == 105.66) // Only Muons are detected
+      if(particle->get_mass() == mass_muon) // Only Muons are detected
       {
         
         int sum_detection{0};
@@ -3734,10 +3764,12 @@ class Detector
 {
   protected:
     bool is_on {true};
-    int total_particles_detected{0}; // this resets
+    int total_particles_detected_event{0}; // this resets
     bool has_detected {false}; // this resets
     int number_of_particles_in_event{0}; // this resets
     // Does not reset
+    int all_particles_detected_by_detector{0};
+    int number_of_particles_expected{0}; // Total number of particles in simulation
     int num_of_incorrect_muons{0};
     int num_of_incorrect_protons{0};
     int num_of_incorrect_photons{0};
@@ -3752,10 +3784,10 @@ class Detector
     int num_of_ghosts{0};
 
     // Energies
-    vector<double> energies_of_all_particles_detected; // This resets every event as most vectors
-    vector<double> energies_from_tracker; // this resets AUN NO
-    vector<double> energies_from_muon_chamber; // this resets AUN NO
-    vector<double> energies_from_calorimeter; // this resets AUN NO
+    vector<double> energies_of_all_particles_detected; // This resets every event
+    vector<double> energies_from_tracker; // this resets
+    vector<double> energies_from_muon_chamber; // this resets
+    vector<double> energies_from_calorimeter; // this resets
     vector<double> hidden_energy; // this resets
 
     vector<std::shared_ptr<Particle>> all_particles_detected; // this resets
@@ -3807,15 +3839,15 @@ class Detector
       calorimeters_in_detector.push_back(calorimeter1_ptr);
       muon_chambers_in_detector.push_back(muon_chamber1_ptr);
     }
-    Detector(int total_particles_detected_initial) // LUEGO VER LA POSIBILIDAD DE HACER PARAMETRIZADA LA CANTIDAD DE SUBDETETCTORES.
+    Detector(int total_particles_detected_event_initial) // LUEGO VER LA POSIBILIDAD DE HACER PARAMETRIZADA LA CANTIDAD DE SUBDETETCTORES.
     {
-      if(total_particles_detected_initial >=0)
+      if(total_particles_detected_event_initial >=0)
       {
-        total_particles_detected = total_particles_detected_initial;
+        total_particles_detected_event = total_particles_detected_event_initial;
       } else
       {
         cout<<"Total number of particles detected must be positive. Taking absolute value."<<endl;
-        total_particles_detected = total_particles_detected_initial*(-1);
+        total_particles_detected_event = total_particles_detected_event_initial*(-1);
       }
       std::shared_ptr<Tracker> tracker1_ptr = std::make_shared<Tracker>(1);
       std::shared_ptr<Calorimeter> calorimeter1_ptr =  std::make_shared<Calorimeter>(1);
@@ -3827,15 +3859,15 @@ class Detector
     ~Detector() {cout<<"Detector destroyed"<<endl;}
 
     // Setters
-    void set_total_particles_detected(const int total_particles_detected_set) 
+    void set_total_particles_detected_event(const int total_particles_detected_event_set) 
     {
-      if(total_particles_detected_set >= 0)
+      if(total_particles_detected_event_set >= 0)
       {
-        total_particles_detected = total_particles_detected_set;
+        total_particles_detected_event = total_particles_detected_event_set;
       } else
       {
         cout<<"Total number of particles detected must be positive. Taking absolute value."<<endl;
-        total_particles_detected = total_particles_detected_set;
+        total_particles_detected_event = total_particles_detected_event_set;
       }
     }
     void set_is_on(const bool is_on_set) {is_on = is_on_set;}
@@ -3865,7 +3897,7 @@ class Detector
     }
     
     // Getters
-    int get_total_particles_detected() const {return total_particles_detected;}
+    int get_total_particles_detected_event() const {return total_particles_detected_event;}
     vector<std::shared_ptr<Tracker>> get_trackers_in_detector() const {return trackers_in_detector;}
     vector<std::shared_ptr<Calorimeter>> get_calorimeters_in_detector() const {return calorimeters_in_detector;}
     vector<std::shared_ptr<MuonChamber>> get_muon_chambers_in_detector() const {return muon_chambers_in_detector;}
@@ -3882,20 +3914,30 @@ class Detector
     vector<vector<std::shared_ptr<Particle>>> get_all_particles_per_event() const {return particles_per_event;}
     vector<vector<std::shared_ptr<Particle>>> get_correct_particles_per_event() const {return correct_particles_per_event;}
     vector<vector<std::shared_ptr<Particle>>> get_incorrect_particles_per_event() const {return incorrect_particles_per_event;}
-    
+    vector<vector<std::shared_ptr<Particle>>> get_ghost_per_event() const {return ghosts_per_event;}
     // Detector Print
     void print_name()
     {
       cout<<"... PRINTING DETECTOR INFORMATION ..."<<endl;
+      cout<<"-------------------------------------"<<endl;
       cout<<"Detector: [Trackers, Calorimeters, MuonChambers] = ["<<trackers_in_detector.size()<<", "<<calorimeters_in_detector.size()<<", "<<muon_chambers_in_detector.size()<<"]"<<endl;
-      cout<<"Number of Particles detected: "<<total_particles_detected<<endl;
+      cout<<"Number of Particles detected: "<<all_particles_detected_by_detector<<endl;
       cout<<"-----------------------------"<<endl;
-      cout<<"Protons Detected: "<<num_of_correct_protons + num_of_incorrect_protons<<" Correct detections: "<<num_of_correct_protons<<endl;
-      cout<<"Electrons Detected: "<<num_of_correct_electrons + num_of_incorrect_electrons<<" Correct detections: "<<num_of_correct_electrons<<endl;
-      cout<<"Muons Detected: "<<num_of_correct_muons + num_of_incorrect_muons<<" Correct detections: "<<num_of_correct_muons<<endl;
-      cout<<"Photons Detected: "<<num_of_correct_photons + num_of_incorrect_photons<<" Correct detections: "<<num_of_correct_photons<<endl;
-      cout<<"Neutrons Detected: "<<num_of_correct_neutrons + num_of_incorrect_neutrons<<" Correct detections: "<<num_of_correct_neutrons<<endl;
+      cout<<"Correct Protons: "<<num_of_correct_protons<<" / Incorrect Protons: "<<num_of_incorrect_protons<<"(These are Hadrons such as Hadronic Tau)"<<endl;
+      cout<<"Correct Electrons: "<<num_of_correct_electrons<<" / Incorrect Electrons: "<<num_of_incorrect_electrons<<endl;
+      cout<<"Correct Muons: "<<num_of_correct_muons<<" / Incorrect Muons: "<<num_of_incorrect_muons<<endl;
+      cout<<"Correct Photons: "<<num_of_correct_photons<<" / Inorrect detections: "<<num_of_incorrect_photons<<endl;
+      cout<<"Correct Neutrons: "<<num_of_correct_neutrons<<" / Incorrect detections: "<<num_of_incorrect_neutrons<<endl;
       cout<<"Number of not recognized particles: "<<num_of_ghosts<<endl;
+      cout<<"Energy:"<<endl;
+      cout<<"-------"<<endl;
+      cout<<"Total Energy Detected: "<<sum_all_vectors(energies_of_all_per_event)<<endl;
+      cout<<"Energy From Trackers: "<<sum_all_vectors(energies_from_tracker_per_event)<<endl;
+      cout<<"Energy From Calorimeters:"<<sum_all_vectors(energies_from_calorimeter_per_event)<<endl;
+      cout<<"Energy From Muon Chambers: "<<sum_all_vectors(energies_from_muon_chamber_per_event)<<endl;
+      cout<<"Total Energy Missed: "<<sum_all_vectors(hidden_energy_per_event)<<endl;
+      cout<<"Particle Efficiency of Detector: "<<(sum_all_vectors(particles_per_event) / ((float)ids - (float)number_of_leptonic_decays))*100<<"%"<<endl;
+      cout<<"Energy Efficiency of Detector: "<<((sum_all_vectors(energies_of_all_per_event))/(sum_all_vectors(energies_of_all_per_event) + sum_all_vectors(hidden_energy_per_event)))*100<<"%"<<endl;
     }
 
     // Detection Process
@@ -3933,7 +3975,7 @@ class Detector
           cout<<"Particle ID: "<<event[j]->get_identifier()<<endl;
           cout<<"---"<<endl;
           // Need to treat Tau separately
-          if(event[j]->get_mass() == 1776.86)
+          if(event[j]->get_mass() == mass_tau)
           {
             if(event[j]->get_decayed_yet() == false) // Extra security, since it is already set in the decay function
             { 
@@ -3971,7 +4013,7 @@ class Detector
           cout<<"Particle ID: "<<event[j]->get_identifier()<<endl;
           cout<<"---"<<endl;
           // Tau Treatment
-          if(event[j]->get_mass() == 1776.86)
+          if(event[j]->get_mass() == mass_tau)
           {
             if(event[j]->get_decayed_yet() == false) // Extra security, since it is already set in the decay function
             {
@@ -4008,7 +4050,7 @@ class Detector
           cout<<"Particle ID: "<<event[j]->get_identifier()<<endl;
           cout<<"---"<<endl;
           // Tau Treatment
-          if(event[j]->get_mass() == 1776.86)
+          if(event[j]->get_mass() == mass_tau)
           {
             if(event[j]->get_decayed_yet() == false) // Extra security.
             {
@@ -4060,7 +4102,7 @@ class Detector
       for(std::shared_ptr<Particle> particle : event) // For each particle in the event
       {
         // We distinguish between Leptonic Tau and not leptonic Tau.
-        if(particle->get_mass() == 1776.86)
+        if(particle->get_mass() == mass_tau)
         {
           if(particle->get_decay_type() == "leptonic")
           {
@@ -4080,7 +4122,7 @@ class Detector
 
               // Tracker Analysis
               //------------------
-              int number_of_trackers_that_detected{0}; // temporal variable.
+              int number_of_trackers_that_detected{0};
               int num_of_INNER_TRACKER_that_detected{0};
               int num_of_OUTER_TRACKER_that_detected{0};
               int num_of_STRIP_TRACKER_that_detected{0};
@@ -4128,15 +4170,15 @@ class Detector
               }
 
               // EACH LAYER OF TRACKER TREATMENT WILL BE JUST AVERAGE DETECTIONS:
-              if(num_of_INNER_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+              if((float)num_of_INNER_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
               {
                 detected_INNER_TRACKER = true;
               }
-              if(num_of_OUTER_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+              if((float)num_of_OUTER_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
               {
                 detected_OUTER_TRACKER = true;
               }
-              if(num_of_STRIP_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+              if((float)num_of_STRIP_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
               {
                 detected_STRIP_LAYER_TRACKER = true;
               }
@@ -4292,7 +4334,7 @@ class Detector
               
               if(detected_tracker == true or detected_calorimeter == true or detected_muon_chamber == true)
               {
-                total_particles_detected = total_particles_detected + 1;
+                total_particles_detected_event = total_particles_detected_event + 1;
                 all_particles_detected.push_back(particle->get_decay_products()[decay_index]);
               }
 
@@ -4333,15 +4375,18 @@ class Detector
                 energy_detected = energy_detected + particle->get_decay_products()[decay_index]->energy_layer_n(7);
                 energy_from_muon_chamber = energy_from_muon_chamber + particle->get_decay_products()[decay_index]->energy_layer_n(7);
               }
-              if(detected_OUTER_MUON)
+              if(detected_OUTER_MUON == true)
               {
                 energy_detected = energy_detected + particle->get_decay_products()[decay_index]->energy_layer_n(8);
                 energy_from_muon_chamber = energy_from_muon_chamber + particle->get_decay_products()[decay_index]->energy_layer_n(8);
               }
-              energies_of_all_particles_detected.push_back(energy_detected);
-              energies_from_calorimeter.push_back(energy_from_calorimeter);
-              energies_from_muon_chamber.push_back(energy_from_muon_chamber);
-              energies_from_tracker.push_back(energy_from_tracker);
+              if(detected_calorimeter == true or detected_tracker == true or detected_muon_chamber == true)
+              {
+                energies_of_all_particles_detected.push_back(energy_detected);
+                energies_from_calorimeter.push_back(energy_from_calorimeter);
+                energies_from_muon_chamber.push_back(energy_from_muon_chamber);
+                energies_from_tracker.push_back(energy_from_tracker);
+              }
               // Finished with energy treatment
 
               if(detected_tracker == false and detected_EM == true and detected_muon_chamber == false and detected_HAD == false)
@@ -4365,7 +4410,7 @@ class Detector
                 if(detected_EM == true and detected_HAD == false) // For Electron
                 {
                   // We think this particle must be an electron
-                  if(particle->get_decay_products()[decay_index]->get_mass() == 0.511)
+                  if(particle->get_decay_products()[decay_index]->get_mass() == mass_electron)
                   {
                     identified_yet = true;
                     correct_electrons.push_back(particle->get_decay_products()[decay_index]);
@@ -4380,7 +4425,7 @@ class Detector
                 if(detected_EM == true and detected_HAD == true) // For Proton
                 {
                   // We think this must be a Proton
-                  if(particle->get_decay_products()[decay_index]->get_mass() == 938)
+                  if(particle->get_decay_products()[decay_index]->get_mass() == mass_proton)
                   {
                     identified_yet = true;
                     correct_protons.push_back(particle->get_decay_products()[decay_index]);
@@ -4395,7 +4440,7 @@ class Detector
                 if(detected_calorimeter == false and detected_muon_chamber == true) // For Muon
                 {
                   // We think this must be a muon
-                  if(particle->get_decay_products()[decay_index]->get_mass() == 105.66)
+                  if(particle->get_decay_products()[decay_index]->get_mass() == mass_muon)
                   {
                     identified_yet = true;
                     correct_muons.push_back(particle->get_decay_products()[decay_index]);
@@ -4417,7 +4462,7 @@ class Detector
                   if(random == 1)
                   {
                     // Electron Case
-                    if(particle->get_decay_products()[decay_index]->get_mass() == 0.511)
+                    if(particle->get_decay_products()[decay_index]->get_mass() == mass_electron)
                     {
                       identified_yet = true;
                       correct_electrons.push_back(particle->get_decay_products()[decay_index]);
@@ -4432,7 +4477,7 @@ class Detector
                   if(random == 2)
                   {
                     // Muon case
-                    if(particle->get_decay_products()[decay_index]->get_mass() == 105.66)
+                    if(particle->get_decay_products()[decay_index]->get_mass() == mass_muon)
                     {
                       identified_yet = true;
                       correct_muons.push_back(particle->get_decay_products()[decay_index]);
@@ -4447,7 +4492,7 @@ class Detector
                   if(random == 3)
                   {
                     // Proton case
-                    if(particle->get_decay_products()[decay_index]->get_mass() == 938)
+                    if(particle->get_decay_products()[decay_index]->get_mass() == mass_proton)
                     {
                       identified_yet = true;
                       correct_protons.push_back(particle->get_decay_products()[decay_index]);
@@ -4464,7 +4509,7 @@ class Detector
               if(detected_tracker == false and detected_muon_chamber == false and detected_EM == true and detected_HAD == true)
               {
                 // We think this must be a neutron
-                if(particle->get_decay_products()[decay_index]->get_mass() == 939.5)
+                if(particle->get_decay_products()[decay_index]->get_mass() == mass_neutron)
                 {
                   identified_yet = true;
                   correct_neutrons.push_back(particle->get_decay_products()[decay_index]);
@@ -4557,15 +4602,15 @@ class Detector
         }
 
         // EACH LAYER OF TRACKER TREATMENT WILL BE JUST AVERAGE DETECTIONS:
-        if(num_of_INNER_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+        if((float)num_of_INNER_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
         {
           detected_INNER_TRACKER = true;
         }
-        if(num_of_OUTER_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+        if((float)num_of_OUTER_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
         {
           detected_OUTER_TRACKER = true;
         }
-        if(num_of_STRIP_TRACKER_that_detected / trackers_in_detector.size() >= 0.5 and detected_tracker == true)
+        if((float)num_of_STRIP_TRACKER_that_detected / (float)trackers_in_detector.size() >= (float)0.5 and detected_tracker == true)
         {
           detected_STRIP_LAYER_TRACKER = true;
         }
@@ -4633,7 +4678,6 @@ class Detector
           }
         }
         
-
         // MuonChamber Analysis
         // --------------------
         int number_of_muon_chambers_that_detected{0};
@@ -4676,11 +4720,11 @@ class Detector
         }
 
         // EACH LAYER OF MUON CHAMBER TREATMENT WILL BE JUST AVERAGE DETECTIONS:
-        if(num_inner_muon_that_detected / muon_chambers_in_detector.size() >= 0.5 and detected_muon_chamber == true)
+        if((float)num_inner_muon_that_detected / (float)muon_chambers_in_detector.size() >= (float)0.5 and detected_muon_chamber == true)
         {
           detected_INNER_MUON = true;
         }
-        if(num_outer_muon_that_detected / muon_chambers_in_detector.size() >= 0.5 and detected_muon_chamber == true)
+        if((float)num_outer_muon_that_detected / (float)muon_chambers_in_detector.size() >= (float)0.5 and detected_muon_chamber == true)
         {
           detected_OUTER_MUON = true;
         }
@@ -4723,13 +4767,12 @@ class Detector
 
         if(detected_tracker == true or detected_calorimeter == true or detected_muon_chamber == true)
         {
-          total_particles_detected = total_particles_detected + 1;
+          total_particles_detected_event = total_particles_detected_event + 1;
           all_particles_detected.push_back(particle); // I add the particle to the detected particles of this event
         }
 
         // NOW WE IDENTIFY THE PARTICLE
         bool identified_yet{false};
-        
         double energy_detected{0};
         double energy_from_tracker{0};
         double energy_from_muon_chamber{0};
@@ -4765,15 +4808,18 @@ class Detector
           energy_detected = energy_detected + particle->energy_layer_n(7);
           energy_from_muon_chamber = energy_from_muon_chamber + particle->energy_layer_n(7);
         }
-        if(detected_OUTER_MUON)
+        if(detected_OUTER_MUON == true)
         {
           energy_detected = energy_detected + particle->energy_layer_n(8);
           energy_from_muon_chamber = energy_from_muon_chamber + particle->energy_layer_n(8);
         }
-        energies_of_all_particles_detected.push_back(energy_detected);
-        energies_from_calorimeter.push_back(energy_from_calorimeter);
-        energies_from_muon_chamber.push_back(energy_from_muon_chamber);
-        energies_from_tracker.push_back(energy_from_tracker);
+        if(detected_calorimeter == true or detected_tracker == true or detected_muon_chamber == true)
+        {
+          energies_of_all_particles_detected.push_back(energy_detected);
+          energies_from_calorimeter.push_back(energy_from_calorimeter);
+          energies_from_muon_chamber.push_back(energy_from_muon_chamber);
+          energies_from_tracker.push_back(energy_from_tracker);
+        }
         // Finished with energy treatment
         
         if(detected_tracker == false and detected_EM == true and detected_muon_chamber == false and detected_HAD == false)
@@ -4797,7 +4843,7 @@ class Detector
           if(detected_EM == true and detected_HAD == false) // For Electron
           {
             // We think this particle must be an electron
-            if(particle->get_mass() == 0.511)
+            if(particle->get_mass() == mass_electron)
             {
               identified_yet = true;
               correct_electrons.push_back(particle);
@@ -4812,7 +4858,7 @@ class Detector
           if(detected_EM == true and detected_HAD == true) // For Proton
           {
             // We think this must be a Proton
-            if(particle->get_mass() == 938)
+            if(particle->get_mass() == mass_proton)
             {
               identified_yet = true;
               correct_protons.push_back(particle);
@@ -4827,7 +4873,7 @@ class Detector
           if(detected_calorimeter == false and detected_muon_chamber == true) // For Muon
           {
             // We think this must be a muon
-            if(particle->get_mass() == 105.66)
+            if(particle->get_mass() == mass_muon)
             {
               identified_yet = true;
               correct_muons.push_back(particle);
@@ -4849,7 +4895,7 @@ class Detector
             if(random == 1)
             {
               // Electron Case
-              if(particle->get_mass() == 0.511)
+              if(particle->get_mass() == mass_electron)
               {
                 identified_yet = true;
                 correct_electrons.push_back(particle);
@@ -4864,7 +4910,7 @@ class Detector
             if(random == 2)
             {
               // Muon case
-              if(particle->get_mass() == 105.66)
+              if(particle->get_mass() == mass_muon)
               {
                 identified_yet = true;
                 correct_muons.push_back(particle);
@@ -4879,7 +4925,7 @@ class Detector
             if(random == 3)
             {
               // Proton case
-              if(particle->get_mass() == 938)
+              if(particle->get_mass() == mass_proton)
               {
                 identified_yet = true;
                 correct_protons.push_back(particle);
@@ -4896,7 +4942,7 @@ class Detector
         if(detected_tracker == false and detected_muon_chamber == false and detected_HAD == true and detected_EM == true)
         {
           // We think this must be a neutron
-          if(particle->get_mass() == 939.5)
+          if(particle->get_mass() == mass_neutron)
           {
             identified_yet = true;
             correct_neutrons.push_back(particle);
@@ -4925,6 +4971,7 @@ class Detector
       // Sumations
       double sum_of_energies{0};
       double sum_of_hidden_energies{0};
+      double total_energy{0};
       for(double num : energies_of_all_particles_detected)
       {
         sum_of_energies = sum_of_energies + num;
@@ -4933,16 +4980,22 @@ class Detector
       {
         sum_of_hidden_energies = sum_of_hidden_energies + num;
       }
+      for(std::shared_ptr<Particle> p : event)
+      {
+        total_energy =  total_energy + p->get_true_energy();
+      }
+
+      all_particles_detected_by_detector = all_particles_detected_by_detector + total_particles_detected_event;
       num_of_correct_electrons = num_of_correct_electrons + correct_electrons.size();
       num_of_correct_muons = num_of_correct_muons + correct_muons.size();
       num_of_correct_protons = num_of_correct_protons + correct_protons.size();
       num_of_correct_photons = num_of_correct_photons + correct_photons.size();
-      num_of_correct_neutrons = num_of_correct_neutrons + correct_photons.size();
+      num_of_correct_neutrons = num_of_correct_neutrons + correct_neutrons.size();
       num_of_incorrect_electrons = num_of_incorrect_electrons + incorrect_electrons.size();
       num_of_incorrect_muons = num_of_incorrect_muons + incorrect_muons.size();
       num_of_incorrect_protons = num_of_incorrect_protons + incorrect_protons.size();
       num_of_incorrect_photons = num_of_incorrect_photons + incorrect_photons.size();
-      num_of_incorrect_neutrons = num_of_incorrect_neutrons + incorrect_photons.size();
+      num_of_incorrect_neutrons = num_of_incorrect_neutrons + incorrect_neutrons.size();
       num_of_neutrinos = num_of_neutrinos + neutrinos_through_detector.size();
       num_of_ghosts = num_of_ghosts + ghost_particles.size();
 
@@ -4950,12 +5003,13 @@ class Detector
       cout<<"//////////////////////////"<<endl;
       cout<<"Event Information:"<<events_analysed<<endl;
       cout<<".................."<<endl;
-      cout<<"Particles Detected: "<<total_particles_detected<<endl;
+      cout<<"Particles Detected: "<<total_particles_detected_event<<endl;
       cout<<"-------------------"<<endl;
       int count{0};
       for(std::shared_ptr<Particle> elem : all_particles_detected)
       {
         cout<<"Particle "<<elem->get_identifier()<<endl;
+        cout<<"--"<<endl;
         elem->print_name();
         cout<<"Energy from Tracker: "<<energies_from_tracker[count]<<endl;
         cout<<"Energy from Calorimeter: "<<energies_from_calorimeter[count]<<endl;
@@ -4967,11 +5021,11 @@ class Detector
       cout<<"Overall for Event: "<<events_analysed<<endl;
       cout<<"__________________"<<endl;
       cout<<"The total energy detected was: "<<sum_of_energies<<endl;
-      cout<<"The total energy missed was: "<<sum_of_hidden_energies<<endl;
-      cout<<"Percentage of energy detected: "<<((float)sum_of_energies/(float)(sum_of_hidden_energies + sum_of_energies))*100<<"%"<<endl;
-      cout<<"Efficiency of run (detected particles/event particles): "<<((float)total_particles_detected / (float)number_of_particles_in_event) * 100<<"%"<<endl;
-      cout<<"True efficiency of run: (correctly detected / event particles): " << ((float)(total_particles_detected - all_incorrect_particles.size()) / (float)number_of_particles_in_event) * 100<<"%"<<endl;
-      cout<<"Correctly Detected / Detected: "<<((float)(total_particles_detected - all_incorrect_particles.size()) / (float)total_particles_detected) * 100<<"%"<<endl;
+      cout<<"The total energy missed was: "<<total_energy - sum_of_energies<<endl;
+      cout<<"Percentage of energy detected: "<<((float)sum_of_energies/(float)(total_energy))*100<<"%"<<endl;
+      cout<<"Efficiency of run (detected particles/event particles): "<<((float)total_particles_detected_event / (float)number_of_particles_in_event) * 100<<"%"<<endl;
+      cout<<"True efficiency of run: (correctly detected / event particles): " << ((float)(total_particles_detected_event - all_incorrect_particles.size()) / (float)number_of_particles_in_event) * 100<<"%"<<endl;
+      cout<<"Correctly Detected / Detected: "<<((float)(total_particles_detected_event - all_incorrect_particles.size()) / (float)total_particles_detected_event) * 100<<"%"<<endl;
       cout<<"Incorrect Protons: "<<incorrect_protons.size()<<endl;
       cout<<"Incorrect Photons: "<<incorrect_photons.size()<<endl;
       cout<<"Incorrect Electrons: "<<incorrect_electrons.size()<<endl;
@@ -5013,6 +5067,9 @@ class Detector
         muon_chambers_in_detector[i]->clear_muon_chamber();
       }
 
+      energies_from_calorimeter.clear();
+      energies_from_muon_chamber.clear();
+      energies_from_tracker.clear();
       hidden_energy.clear();
       ghost_particles.clear();
       neutrinos_through_detector.clear();
@@ -5029,7 +5086,7 @@ class Detector
       energies_of_all_particles_detected.clear();
       all_correct_particles.clear();
       all_incorrect_particles.clear();
-      total_particles_detected = 0;
+      total_particles_detected_event = 0;
       all_particles_detected.clear();
       number_of_particles_in_event = 0;
     }
@@ -5057,6 +5114,7 @@ void distribute_energy(vector<std::shared_ptr<Particle>> event, double energy) /
 
 }
 
+
 int main()
 {
   srand(time(NULL)); // For changing seed overall (we also have seed changing when running to completely avoid repetition)
@@ -5067,16 +5125,16 @@ int main()
   vector<std::shared_ptr<Particle>> event2;
   vector<std::shared_ptr<Particle>> event3;
   vector<std::shared_ptr<Particle>> event4;
-/*
+
   // EVENT NUMBER 1: Two Photons
   // ..............
   std::shared_ptr<Photon> ph1_ptr = std::make_shared<Photon>();
   std::shared_ptr<Photon> ph2_ptr = std::make_shared<Photon>();
   event.push_back(ph1_ptr);
   event.push_back(ph2_ptr);
+  distribute_energy(event, 125);
   D1.detect(event);
-*/
-/*
+
   // EVENT NUMBER 2: Proton - Neutron - Photon
   // ..............
   std::shared_ptr<Neutron> n1_ptr = std::make_shared<Neutron>();
@@ -5085,39 +5143,43 @@ int main()
   event2.push_back(n1_ptr);
   event2.push_back(ph3_ptr);
   event2.push_back(pr1_ptr);
+  distribute_energy(event2, 1500);
   D1.detect(event2);
-*/
-  // EVENT NUMBER 3: Proton - Neutron - Photon // AQUI HAY ERRORES// AQUI HAY ERRORES// AQUI HAY ERRORES// AQUI HAY ERRORES
+
+  // EVENT NUMBER 3: TAU-ANTITAU
   // ..............
   std::shared_ptr<Tau> t1_ptr = std::make_shared<Tau>();
   std::shared_ptr<Tau> t2_ptr = std::make_shared<Tau>();
+  t1_ptr->set_is_anti(true);
+  t1_ptr->set_decay("leptonic");
+  t2_ptr->set_decay("hadronic");
   event3.push_back(t1_ptr);
   event3.push_back(t2_ptr);
+  distribute_energy(event3, 1500);
   D1.detect(event3);
-  if(t1_ptr->get_decay_type() == "leptonic")
-  {
-    for(int i{0}; i < 3; i++)
-    {
-      t1_ptr->get_decay_products()[i]->print_name();
-    }
-  }
-  if(t2_ptr->get_decay_type() == "leptonic")
-  {
-    for(int i{0}; i < 3; i++)
-    {
-      t2_ptr->get_decay_products()[i]->print_name();
-    }
-  }
-/*
+
   // EVENT NUMBER 4: Proton - Neutron - Photon
   // ..............
   std::shared_ptr<Proton> pr2_ptr = std::make_shared<Proton>();
   std::shared_ptr<Neutrino> neutri1_ptr = std::make_shared<Neutrino>();
   std::shared_ptr<Neutrino> neutri2_ptr = std::make_shared<Neutrino>();
-  event4.push_back(n1_ptr);
-  event4.push_back(ph3_ptr);
-  event4.push_back(pr1_ptr);
+  neutri2_ptr->set_is_anti(true);
+  event4.push_back(pr2_ptr);
+  event4.push_back(neutri1_ptr);
+  event4.push_back(neutri2_ptr);
+  distribute_energy(event4, 1500);
   D1.detect(event4);
-*/
+
+  D1.print_name();
+
+  for(vector<std::shared_ptr<Particle>> p : D1.get_ghost_per_event())
+  {
+    for(std::shared_ptr<Particle> particle : p)
+    {
+      particle->print_name();
+    }
+  }
+  cout<<"Destroying Instances"<<endl;
+  cout<<"--------------------"<<endl;
   return 0;
 }
